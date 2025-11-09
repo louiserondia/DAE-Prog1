@@ -10,11 +10,11 @@ void Start()
 
 void Draw()
 {
-	ClearBackground();
+	ClearBackground(0.8f, 0.8f, 0.8f);
 
+	DrawBackGround();
 	DrawPortals();
 	DrawBall();
-	DrawGround();
 }
 
 void Update(float elapsedSec)
@@ -24,15 +24,7 @@ void Update(float elapsedSec)
 		g_IsBallFalling = true;
 	}
 	else {
-		g_BallCenter.y = g_Ground.top - g_BallRadius.y;
-		g_IsBallFalling = false;
-		g_BallVelocity.y *= g_BallBounceCoef;
-	
-		std::cout << g_BallVelocity.y << std::endl;
-		/*	if (g_BallVelocity.y < 0.3f)
-			g_BallVelocity.y = 0.f;
-		else if (g_BallVelocity.y > -0.3f)
-			g_BallVelocity.y = 0.f;*/
+		ApplyBallBounce();
 	}
 
 }
@@ -51,13 +43,16 @@ void OnKeyDownEvent(SDL_Keycode key)
 	case SDLK_q:
 	case SDLK_LEFT:
 		g_BallVelocity.x = -g_MovesVelocity.x;
+		g_MvtKeyPressed = true;
 		break;
 	case SDLK_d:
 	case SDLK_RIGHT:
+		g_MvtKeyPressed = true;
 		g_BallVelocity.x = g_MovesVelocity.x;
 		break;
 	case SDLK_SPACE:
-		if (!g_IsBallFalling)
+		g_MvtKeyPressed = true;
+		if (g_BallCenter.y + g_BallRadius.y + g_BallJumpOffset > g_Ground.top)
 			g_BallVelocity.y = g_MovesVelocity.y;
 		break;
 	default:
@@ -73,7 +68,7 @@ void OnKeyUpEvent(SDL_Keycode key)
 	case SDLK_LEFT:
 	case SDLK_d:
 	case SDLK_RIGHT:
-		g_BallVelocity.x = 0.f;
+		g_MvtKeyPressed = false;
 		break;
 	default:
 		break;
@@ -150,7 +145,7 @@ bool IsBallInPortal(Portal portal) {
 		&& g_BallCenter.y <= portal.center.y + portal.height
 		&& g_BallCenter.y >= portal.center.y - portal.height)
 	{
-		
+
 		//check direction
 		const float gap{ g_BallCenter.x - portal.center.x };
 		if (gap < 0 && g_BallVelocity.x > 0.f) // on the left and going right 
@@ -165,6 +160,12 @@ void UpdateBallPosition(float elapsedSec) {
 
 	g_BallCenter.x += g_BallVelocity.x * elapsedSec;
 	g_BallCenter.y += g_BallVelocity.y * elapsedSec;
+
+	if (!g_MvtKeyPressed)
+		g_BallVelocity.x *= HOR_FRICTION;
+
+	if (g_BallCenter.x - g_BallRadius.x <= 0.f || g_BallCenter.x + g_BallRadius.x >= g_WindowWidth)
+		g_BallVelocity.x *= -1.f;
 
 	BallFalling(elapsedSec);
 
@@ -187,20 +188,46 @@ bool BallTeleportation(Portal src, Portal dst) {
 	return true;
 }
 
-void DrawGround() {
-	SetColor(g_GroundColor);
-
-	FillRect(g_Ground);
-}
-
 bool isBallColliding() {
 	bool isColliding{ false };
+	const float epsilon{ 1.f };
 
-	if (g_BallCenter.y + g_BallRadius.y > g_Ground.top)
+	if (g_BallCenter.y + g_BallRadius.y + epsilon > g_Ground.top)
 		isColliding = true;
 	return isColliding;
 }
 
+void ApplyBallBounce() {
+	g_BallCenter.y = g_Ground.top - g_BallRadius.y;
+	g_IsBallFalling = false;
+	g_BallVelocity.y *= g_BallBounceCoef;
 
+	if (g_IsBallFalling && g_BallVelocity.y < MIN_BOUNCE_SPEED && g_BallVelocity.y > -MIN_BOUNCE_SPEED) {
+		g_BallVelocity.y = 0.f;
+		g_IsBallFalling = false;
+	}
+}
+
+void DrawBackGround() {
+	const float nRow{ 5.f };
+	const float nCol{ 10.f };
+	const float offsetX{ 100.f }, offsetY{ 30.f };
+	const float gap{ g_WindowWidth / nCol }, 
+				pGap{ (g_WindowWidth - offsetX * 2) / nCol };
+
+	SetColor(g_DarkGrey);
+	for (int i{-1}; i < nCol + 2; i++) {
+		DrawLine(i * gap, g_Ground.top + offsetY, i * gap, g_WindowHeight);
+		DrawLine(i * gap, g_Ground.top + offsetY, offsetX + i * pGap, g_Ground.top - offsetY);
+		DrawLine(offsetX + i * pGap, g_Ground.top - offsetY, offsetX + i * pGap, 0.f);
+	}
+	for (int i{}; i < 5; i++) {
+		const float up = (g_Ground.top - offsetY) - i * g_WindowHeight / 5;
+		const float down = (g_Ground.top + offsetY) + i * g_WindowHeight / 5;
+		DrawLine(0.f, up, g_WindowWidth, up);
+		DrawLine(0.f, down, g_WindowWidth, down);
+	}
+
+}
 
 #pragma endregion ownDefinitions
