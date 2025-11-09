@@ -102,21 +102,66 @@ void OnMouseUpEvent(const SDL_MouseButtonEvent& e)
 #pragma region ownDefinitions
 // Define your own functions here
 
-void DrawPortal(float width, float height, Point2f center, Color4f color) {
+float GetLineWidthInEllipse(float y) {
+	const float height = g_PortalHeight - 8.f;
+	const float width = g_PortalWidth - 8.f;
+	return (width * (sqrt(1 - ((y * y) / (height * height)))));
+}
+
+float GetLineHeightInEllipse(float x) {
+	const float height = g_PortalHeight - 8.f;
+	const float width = g_PortalWidth - 8.f;
+	return (height * (sqrt(1 - ((x * x) / (width * width)))));
+}
+
+void DrawPortal(float width, float height, Point2f center, Color4f color, Portal dst) {
 	SetColor(color);
 
 	FillEllipse(center, width, height);
+
+	SetColor(g_Grey);
+	FillEllipse(center, width - 8.f, height - 8.f);
+
+	// Drawing the lines of the other portal
+
+	SetColor(g_DarkGrey);
+
+	if (!dst.isOn)
+		return;
+
+	const float offsetX{ 100.f };
+	const float gapX{ (g_WindowWidth - offsetX * 2) / 10.f };
+
+	int dX{ int(dst.center.x - (offsetX - gapX)) % int(gapX) };
+	if (dX > int(gapX / 2))
+		dX = dX - int(gapX);
+
+	const float lineHeight = GetLineHeightInEllipse(dX);
+	DrawLine(center.x - dX, center.y - lineHeight, center.x - dX, center.y + lineHeight);
+
+
+	const float gapY{ g_WindowHeight / 5.f };
+	const float offsetY{ float (int(g_Ground.top - 30.f) % int(gapY)) };
+
+	int dY{ int(dst.center.y - offsetY) % int(gapY) };
+	if (dY > int(gapY / 2))
+		dY = dY - int(gapY);
+
+	const float lineWidth = GetLineWidthInEllipse(dY);
+	DrawLine(center.x - lineWidth, center.y - dY, center.x + lineWidth, center.y - dY);
+
+
 }
 
-void DrawPortal(Portal portal) {
-	DrawPortal(portal.width, portal.height, portal.center, portal.color);
+void DrawPortal(Portal src, Portal dst) {
+	DrawPortal(src.width, src.height, src.center, src.color, dst);
 }
 
 void DrawPortals() {
 	if (g_BluePortal.isOn)
-		DrawPortal(g_BluePortal);
+		DrawPortal(g_BluePortal, g_OrangePortal);
 	if (g_OrangePortal.isOn)
-		DrawPortal(g_OrangePortal);
+		DrawPortal(g_OrangePortal, g_BluePortal);
 }
 
 
@@ -212,16 +257,18 @@ void DrawBackGround() {
 	const float nRow{ 5.f };
 	const float nCol{ 10.f };
 	const float offsetX{ 100.f }, offsetY{ 30.f };
-	const float gap{ g_WindowWidth / nCol }, 
-				pGap{ (g_WindowWidth - offsetX * 2) / nCol };
+	const float gap{ g_WindowWidth / nCol },
+		pGap{ (g_WindowWidth - offsetX * 2) / nCol };
 
 	SetColor(g_DarkGrey);
-	for (int i{-1}; i < nCol + 2; i++) {
-		DrawLine(i * gap, g_Ground.top + offsetY, i * gap, g_WindowHeight);
-		DrawLine(i * gap, g_Ground.top + offsetY, offsetX + i * pGap, g_Ground.top - offsetY);
-		DrawLine(offsetX + i * pGap, g_Ground.top - offsetY, offsetX + i * pGap, 0.f);
+	for (int i{ -1 }; i < nCol + 2; i++) {
+		DrawLine(offsetX + i * pGap, g_Ground.top - offsetY, offsetX + i * pGap, 0.f);	// vertical top lines
+		DrawLine(i * gap, g_Ground.top + offsetY, offsetX + i * pGap, g_Ground.top - offsetY); // diagonals
+		/*if (i == -1)
+			std::cout << offsetX + i * pGap << std::endl;*/
+		DrawLine(i * gap, g_Ground.top + offsetY, i * gap, g_WindowHeight); // vertical bottom lines
 	}
-	for (int i{}; i < 5; i++) {
+	for (int i{}; i < nRow; i++) {
 		const float up = (g_Ground.top - offsetY) - i * g_WindowHeight / 5;
 		const float down = (g_Ground.top + offsetY) + i * g_WindowHeight / 5;
 		DrawLine(0.f, up, g_WindowWidth, up);

@@ -23,7 +23,8 @@ const float	g_Gravity{ 600.f };
 
 const Color4f	g_Blue{ 0.4f, 0.5f, 0.9f, 1.f };
 const Color4f	g_Orange{ 0.9f, 0.7f, 0.4f, 1.f };
-const Color4f	g_Grey{ 0.9f, 0.9f, 0.9f, 1.f };
+const Color4f	g_White{ 0.9f, 0.9f, 0.9f, 1.f };
+const Color4f	g_Grey{ 0.8f, 0.8f, 0.8f, 1.f };
 const Color4f	g_DarkGrey{ 0.6f, 0.6f, 0.6f, 1.f };
 
 // strength of movements, so x is how fast it will move horizontally and y is how high/fast it will jump
@@ -58,7 +59,7 @@ Portal g_OrangePortal{ g_PortalWidth , g_PortalHeight, Point2f{}, g_Orange, fals
 
 Point2f	g_BallCenter{ g_WindowWidth / 2, g_WindowHeight / 2 };
 Point2f	g_BallVelocity{ 0.f, 0.f };
-Color4f	g_BallColor{ g_Grey };
+Color4f	g_BallColor{ g_White };
 Point2f	g_BallRadius{ 20.f, 20.f };
 bool	g_IsBallFalling{};
 bool	g_IsBallJumping{};
@@ -71,8 +72,8 @@ const float g_BallBounceCoef{ -0.3f };
 
 // portals
 
-void DrawPortal(Portal portal);
-void DrawPortal(float width, float height, Point2f center, Color4f color);
+void DrawPortal(Portal src, Portal dst);
+void DrawPortal(float width, float height, Point2f center, Color4f color, Portal dst);
 void DrawPortals();
 
 void UpdatePortalPosition(Portal& portal, Point2f newCenter);
