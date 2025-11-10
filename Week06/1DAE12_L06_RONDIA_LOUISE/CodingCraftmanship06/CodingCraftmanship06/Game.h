@@ -28,7 +28,7 @@ const Color4f	g_Grey{ 0.8f, 0.8f, 0.8f, 1.f };
 const Color4f	g_DarkGrey{ 0.6f, 0.6f, 0.6f, 1.f };
 
 // strength of movements, so x is how fast it will move horizontally and y is how high/fast it will jump
-const Point2f g_MovesVelocity{200.f, -350.f}; 
+const Point2f g_MovesVelocity{ 200.f, -350.f };
 bool	g_MvtKeyPressed{};
 
 const float g_GroundHeight{ 150.f };
@@ -72,11 +72,14 @@ const float g_BallBounceCoef{ -0.3f };
 
 // portals
 
-void DrawPortal(Portal src, Portal dst);
-void DrawPortal(float width, float height, Point2f center, Color4f color, Portal dst);
+void DrawPortal(const Portal& src, const Portal& dst);
+void DrawPortal(float width, float height, const Point2f& center, const Color4f& color, const Portal& dst);
 void DrawPortals();
 
-void UpdatePortalPosition(Portal& portal, Point2f newCenter);
+float GetLineHeightInEllipse(float x);
+float GetLineWidthInEllipse(float y);
+
+void UpdatePortalPosition(Portal& portal, Point2f& newCenter);
 void UpdatePortalPosition(Portal& portal, float newCenterX, float newCenterY);
 
 // ball
@@ -85,9 +88,9 @@ void DrawBall();
 
 void UpdateBallPosition(float elapsedSec);
 void BallFalling(float elapsedSec);
-bool BallTeleportation(Portal src, Portal dst);
+bool BallTeleportation(const Portal& src, const Portal& dst);
 void ApplyBallBounce();
-bool IsBallInPortal(Portal portal);
+bool IsBallInPortal(const Portal& portal);
 
 
 // ground
@@ -95,6 +98,14 @@ bool IsBallInPortal(Portal portal);
 bool isBallColliding();
 
 void DrawBackGround();
+void DrawPortalView(const Portal& viewer, const Portal& target);
+
+void DrawPixel(const Point2f& pos, float size = 1.f);
+void DrawPixel(float x, float y, float size = 1.f);
+bool IsInEllipse(const Point2f& pos, const  Portal& portal);
+bool IsInEllipse(float x, float y, const Portal& portal);
+void DrawLineInEllipse(float x1, float y1, float x2, float y2, const  Portal& portal);
+
 
 #pragma endregion ownDeclarations
 

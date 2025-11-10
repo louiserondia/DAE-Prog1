@@ -114,62 +114,38 @@ float GetLineHeightInEllipse(float x) {
 	return (height * (sqrt(1 - ((x * x) / (width * width)))));
 }
 
-void DrawPortal(float width, float height, Point2f center, Color4f color, Portal dst) {
-	SetColor(color);
 
-	FillEllipse(center, width, height);
+void DrawPortal(const Portal& src, const Portal& dst) {
+	SetColor(src.color);
+	FillEllipse(src.center, src.width, src.height);
 
 	SetColor(g_Grey);
-	FillEllipse(center, width - 8.f, height - 8.f);
-
-	// Drawing the lines of the other portal
-
-	SetColor(g_DarkGrey);
+	FillEllipse(src.center, src.width - 8.f, src.height - 8.f);
 
 	if (!dst.isOn)
 		return;
-
-	const float offsetX{ 100.f };
-	const float gapX{ (g_WindowWidth - offsetX * 2) / 10.f };
-
-	int dX{ int(dst.center.x - (offsetX - gapX)) % int(gapX) };
-	if (dX > int(gapX / 2))
-		dX = dX - int(gapX);
-
-	const float lineHeight = GetLineHeightInEllipse(dX);
-	DrawLine(center.x - dX, center.y - lineHeight, center.x - dX, center.y + lineHeight);
-
-
-	const float gapY{ g_WindowHeight / 5.f };
-	const float offsetY{ float (int(g_Ground.top - 30.f) % int(gapY)) };
-
-	int dY{ int(dst.center.y - offsetY) % int(gapY) };
-	if (dY > int(gapY / 2))
-		dY = dY - int(gapY);
-
-	const float lineWidth = GetLineWidthInEllipse(dY);
-	DrawLine(center.x - lineWidth, center.y - dY, center.x + lineWidth, center.y - dY);
-
-
+	DrawPortalView(src, dst);
 }
 
-void DrawPortal(Portal src, Portal dst) {
-	DrawPortal(src.width, src.height, src.center, src.color, dst);
-}
 
 void DrawPortals() {
 	if (g_BluePortal.isOn)
 		DrawPortal(g_BluePortal, g_OrangePortal);
 	if (g_OrangePortal.isOn)
-		DrawPortal(g_OrangePortal, g_BluePortal);
+		DrawPortal(g_OrangePortal, g_BluePortal);	
 }
-
 
 void UpdatePortalPosition(Portal& portal, float newCenterX, float newCenterY) {
-	UpdatePortalPosition(portal, Point2f{ newCenterX, newCenterY });
+	Point2f newCenter{ newCenterX, newCenterY };
+	UpdatePortalPosition(portal, newCenter);
 }
 
-void UpdatePortalPosition(Portal& portal, Point2f newCenter) {
+void UpdatePortalPosition(Portal& portal, Point2f& newCenter) {
+	if (newCenter.y > g_Ground.top)
+		return;
+	else if (newCenter.y > g_Ground.top - 30.f)
+		newCenter.y = g_Ground.top - 30.f;
+
 	portal.isOn = true;
 	portal.center = newCenter;
 }
@@ -180,7 +156,7 @@ void DrawBall() {
 	FillEllipse(g_BallCenter, g_BallRadius.x, g_BallRadius.y);
 }
 
-bool IsBallInPortal(Portal portal) {
+bool IsBallInPortal(const Portal& portal) {
 	const float offset{ 5.f };
 	bool isIn{ false };
 
@@ -193,9 +169,9 @@ bool IsBallInPortal(Portal portal) {
 
 		//check direction
 		const float gap{ g_BallCenter.x - portal.center.x };
-		if (gap < 0 && g_BallVelocity.x > 0.f) // on the left and going right 
+		if (gap < 0 && g_BallVelocity.x > 0.f) // on the left, going right 
 			isIn = true;
-		else if (gap > 0 && g_BallVelocity.x < 0.f) // on the right and going left
+		else if (gap > 0 && g_BallVelocity.x < 0.f) // on the right, going left
 			isIn = true;
 	}
 	return isIn;
@@ -224,7 +200,7 @@ void BallFalling(float elapsedSec) {
 	g_BallVelocity.y += g_Gravity * elapsedSec;
 }
 
-bool BallTeleportation(Portal src, Portal dst) {
+bool BallTeleportation(const Portal& src, const Portal& dst) {
 
 	if (!src.isOn || !dst.isOn || !IsBallInPortal(src))
 		return false;
@@ -264,8 +240,6 @@ void DrawBackGround() {
 	for (int i{ -1 }; i < nCol + 2; i++) {
 		DrawLine(offsetX + i * pGap, g_Ground.top - offsetY, offsetX + i * pGap, 0.f);	// vertical top lines
 		DrawLine(i * gap, g_Ground.top + offsetY, offsetX + i * pGap, g_Ground.top - offsetY); // diagonals
-		/*if (i == -1)
-			std::cout << offsetX + i * pGap << std::endl;*/
 		DrawLine(i * gap, g_Ground.top + offsetY, i * gap, g_WindowHeight); // vertical bottom lines
 	}
 	for (int i{}; i < nRow; i++) {
@@ -274,7 +248,77 @@ void DrawBackGround() {
 		DrawLine(0.f, up, g_WindowWidth, up);
 		DrawLine(0.f, down, g_WindowWidth, down);
 	}
+}
 
+void DrawPortalView(const Portal& viewer, const Portal& target) {
+	const float nRow{ 5.f };
+	const float nCol{ 10.f };
+	const float offsetX{ 100.f }, offsetY{ 30.f };
+	const float gap{ g_WindowWidth / nCol },
+		pGap{ (g_WindowWidth - offsetX * 2) / nCol };
+
+	Point2f start{ viewer.center.x - target.center.x, viewer.center.y - target.center.y };
+
+	SetColor(g_DarkGrey);
+	for (int i{ -1 }; i < nCol + 2; i++) {
+
+		DrawLineInEllipse(start.x + offsetX + i * pGap, start.y + g_Ground.top - offsetY, start.x + offsetX + i * pGap, start.y + 0.f, viewer);	// vertical top lines
+		DrawLineInEllipse(start.x + i * gap, start.y + g_Ground.top + offsetY, start.x + offsetX + i * pGap, start.y + g_Ground.top - offsetY, viewer); // diagonals
+		DrawLineInEllipse(start.x + i * gap, start.y + g_Ground.top + offsetY, start.x + i * gap, start.y + g_WindowHeight, viewer); // vertical bottom lines
+	}
+	for (int i{}; i < nRow; i++) {
+		const float up = (g_Ground.top - offsetY) - i * g_WindowHeight / 5;
+		const float down = (g_Ground.top + offsetY) + i * g_WindowHeight / 5;
+		DrawLineInEllipse(start.x + 0.f, start.y + up, start.x + g_WindowWidth, start.y + up, viewer);
+		DrawLineInEllipse(start.x + 0.f, start.y + down, start.x + g_WindowWidth, start.y + down, viewer);
+	}
+}
+bool IsInEllipse(const Point2f& pos, const Portal& portal) {
+	return IsInEllipse(pos.x, pos.y, portal);
+}
+
+bool IsInEllipse(float x, float y, const Portal& portal) {
+	const float width{ g_PortalWidth - 8.f }, height{ g_PortalHeight - 8.f };
+	const float dx{ (x - portal.center.x) / width }, dy{ (y - portal.center.y) / height };
+	bool isIn{ false };
+
+	if ((dx * dx) + (dy * dy) <= 1.f)
+		isIn = true;
+
+	return isIn;
+}
+
+void DrawLineInEllipse(float x1, float y1, float x2, float y2, const Portal& portal) {
+
+	const float dx{ x2 - x1 }, dy{ y2 - y1 };
+	const float steps{ std::max(fabsf(dx), fabsf(dy)) };
+	if (!steps)
+		return;
+
+	float x{ x1 }, y{ y1 };
+
+	for (float i{}; i < steps; ++i) {
+		if (IsInEllipse(x, y, portal))
+			DrawPixel(x, y);
+
+		x += dx / steps;
+		y += dy / steps;
+	}
+
+}
+
+// utils
+
+void DrawPixel(const Point2f& pos, float size) {
+	DrawPixel(pos.x, pos.y, size);
+}
+
+void DrawPixel(float x, float y, float size)
+{
+	glPointSize(size);
+	glBegin(GL_POINTS);
+	glVertex2f(x, y);
+	glEnd();
 }
 
 #pragma endregion ownDefinitions
