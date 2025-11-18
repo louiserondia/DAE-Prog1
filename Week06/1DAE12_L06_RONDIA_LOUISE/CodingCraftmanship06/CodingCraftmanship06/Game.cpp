@@ -6,6 +6,10 @@
 #pragma region gameFunctions											
 void Start()
 {
+	std::cout << "		~~~ Portal (kind of) ~~~\n\n";
+	std::cout << "Place portals with left and right mouse buttons\n";
+	std::cout << "Move with direction keys or QZSD (azerty keyboard) and space\n";
+	std::cout << "(and so this precious feature is not missed: we can see \"through\" each portal)\n";
 }
 
 void Draw()
@@ -19,6 +23,19 @@ void Draw()
 
 void Update(float elapsedSec)
 {
+	// Check keyboard state
+	//const Uint8 *pStates = SDL_GetKeyboardState( nullptr );
+	//if ( pStates[SDL_SCANCODE_RIGHT] )
+	//{
+	//	std::cout << "Right arrow key is down\n";
+	//}
+	//if ( pStates[SDL_SCANCODE_LEFT] && pStates[SDL_SCANCODE_UP])
+	//{
+	//	std::cout << "Left and up arrow keys are down\n";
+	//}
+
+	//handle keyboard input as above, and see if i still need mvtkeypressed
+
 	UpdateBallPosition(elapsedSec);
 	if (!isBallColliding()) {
 		g_IsBallFalling = true;
@@ -26,7 +43,6 @@ void Update(float elapsedSec)
 	else {
 		ApplyBallBounce();
 	}
-
 }
 
 void End()
@@ -114,25 +130,23 @@ float GetLineHeightInEllipse(float x) {
 	return (height * (sqrt(1 - ((x * x) / (width * width)))));
 }
 
+void DrawPortal(const Portal& viewer, const Portal& target) {
+	SetColor(viewer.color);
+	FillEllipse(viewer.center, viewer.width, viewer.height);
 
-void DrawPortal(const Portal& src, const Portal& dst) {
-	SetColor(src.color);
-	FillEllipse(src.center, src.width, src.height);
+	SetColor(g_MidGrey);
+	FillEllipse(viewer.center, viewer.width - 8.f, viewer.height - 8.f);
 
-	SetColor(g_Grey);
-	FillEllipse(src.center, src.width - 8.f, src.height - 8.f);
-
-	if (!dst.isOn)
+	if (!target.isOn)
 		return;
-	DrawPortalView(src, dst);
+	DrawPortalView(viewer, target);
 }
-
 
 void DrawPortals() {
 	if (g_BluePortal.isOn)
 		DrawPortal(g_BluePortal, g_OrangePortal);
 	if (g_OrangePortal.isOn)
-		DrawPortal(g_OrangePortal, g_BluePortal);	
+		DrawPortal(g_OrangePortal, g_BluePortal);
 }
 
 void UpdatePortalPosition(Portal& portal, float newCenterX, float newCenterY) {
@@ -149,7 +163,6 @@ void UpdatePortalPosition(Portal& portal, Point2f& newCenter) {
 	portal.isOn = true;
 	portal.center = newCenter;
 }
-
 
 void DrawBall() {
 	SetColor(g_BallColor);
@@ -257,9 +270,9 @@ void DrawPortalView(const Portal& viewer, const Portal& target) {
 	const float gap{ g_WindowWidth / nCol },
 		pGap{ (g_WindowWidth - offsetX * 2) / nCol };
 
-	Point2f start{ viewer.center.x - target.center.x, viewer.center.y - target.center.y };
+	const Point2f start{ viewer.center.x - target.center.x, viewer.center.y - target.center.y };
 
-	SetColor(g_DarkGrey);
+	SetColor(g_DarkerGrey);
 	for (int i{ -1 }; i < nCol + 2; i++) {
 
 		DrawLineInEllipse(start.x + offsetX + i * pGap, start.y + g_Ground.top - offsetY, start.x + offsetX + i * pGap, start.y + 0.f, viewer);	// vertical top lines
@@ -280,12 +293,8 @@ bool IsInEllipse(const Point2f& pos, const Portal& portal) {
 bool IsInEllipse(float x, float y, const Portal& portal) {
 	const float width{ g_PortalWidth - 8.f }, height{ g_PortalHeight - 8.f };
 	const float dx{ (x - portal.center.x) / width }, dy{ (y - portal.center.y) / height };
-	bool isIn{ false };
 
-	if ((dx * dx) + (dy * dy) <= 1.f)
-		isIn = true;
-
-	return isIn;
+	return (dx * dx) + (dy * dy) <= 1.f;
 }
 
 void DrawLineInEllipse(float x1, float y1, float x2, float y2, const Portal& portal) {

@@ -4,7 +4,7 @@ using namespace utils;
 
 #pragma region gameInformation
 // TODO: Set your name and group in the title here
-std::string g_WindowTitle{ "Project name - Name, firstname - 1DAExx" };
+std::string g_WindowTitle{ "Coding Craftmanship 6 - portal - Rondia, Louise - 1DAE12" };
 
 // Change the window dimensions here
 float g_WindowWidth{ 800 };
@@ -21,11 +21,14 @@ const float HOR_FRICTION = 0.95f;
 
 const float	g_Gravity{ 600.f };
 
-const Color4f	g_Blue{ 0.4f, 0.5f, 0.9f, 1.f };
-const Color4f	g_Orange{ 0.9f, 0.7f, 0.4f, 1.f };
+const Color4f	g_Blue{ 0.3f, 0.45f, .9f, 1.f };
+const Color4f	g_Orange{ 1.f, 0.7f, 0.25f, 1.f };
 const Color4f	g_White{ 0.9f, 0.9f, 0.9f, 1.f };
+const Color4f	g_LightGrey{ 0.85f, 0.85f, 0.85f, 1.f };
 const Color4f	g_Grey{ 0.8f, 0.8f, 0.8f, 1.f };
+const Color4f	g_MidGrey{ 0.75f, 0.75f, 0.75f, 1.f };
 const Color4f	g_DarkGrey{ 0.6f, 0.6f, 0.6f, 1.f };
+const Color4f	g_DarkerGrey{ 0.5f, 0.5f, 0.5f, 1.f };
 
 // strength of movements, so x is how fast it will move horizontally and y is how high/fast it will jump
 const Point2f g_MovesVelocity{ 200.f, -350.f };
@@ -36,11 +39,10 @@ const Color4f g_GroundColor{ g_DarkGrey };
 
 Rectf g_Ground{ 0.f, g_WindowHeight - g_GroundHeight, g_WindowWidth, g_GroundHeight };
 
-
 //portal
 
-const float g_PortalWidth{ 30.f };
-const float g_PortalHeight{ 60.f };
+const float g_PortalWidth{ 40.f };
+const float g_PortalHeight{ 70.f };
 
 struct Portal
 {
@@ -72,8 +74,7 @@ const float g_BallBounceCoef{ -0.3f };
 
 // portals
 
-void DrawPortal(const Portal& src, const Portal& dst);
-void DrawPortal(float width, float height, const Point2f& center, const Color4f& color, const Portal& dst);
+void DrawPortal(const Portal& viewer, const Portal& target);
 void DrawPortals();
 
 float GetLineHeightInEllipse(float x);
@@ -91,11 +92,9 @@ void BallFalling(float elapsedSec);
 bool BallTeleportation(const Portal& src, const Portal& dst);
 void ApplyBallBounce();
 bool IsBallInPortal(const Portal& portal);
-
-
-// ground
-
 bool isBallColliding();
+
+// background
 
 void DrawBackGround();
 void DrawPortalView(const Portal& viewer, const Portal& target);

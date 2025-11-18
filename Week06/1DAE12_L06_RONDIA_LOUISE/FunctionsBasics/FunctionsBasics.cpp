@@ -1,6 +1,8 @@
 // FunctionsBasics.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// Rondia, Louise, 1DAE12
+
 #include "pch.h"
 #include <iostream>
 #include <string>
