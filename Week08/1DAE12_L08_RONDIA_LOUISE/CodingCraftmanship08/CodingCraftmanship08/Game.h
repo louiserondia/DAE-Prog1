@@ -1,5 +1,6 @@
 #pragma once
 #include <utils.h>
+#include <map>
 using namespace utils;
 
 #pragma region gameInformation
@@ -19,31 +20,25 @@ float g_WindowHeight{ 720 };
 const Color4f g_White{ 1.f, 1.f, 1.f, 1.f };
 const Color4f g_Black{ 0.f, 0.f, 0.f, 1.f };
 
-enum class Facing
-{
-	Right,
-	Left
-};
-
-enum class MoveState
-{
-	Grounded,
-	Jumping,
-	Falling
-};
-
 enum class AnimState {
 	Idle,
 	Walk,
 	Jump,
-	Fall,
-	Sit
+	Sleep,
 };
 
-struct WolfTexture {
+struct FoxTexture {
 	Texture		texture{};
-	const int	nrCols{ 6 };
-	const int	nrRows{ 5 };
+	const int	nrCols{ 22 };
+	const int	nrRows{ 7 };
+	float		frameWidth{};
+	float		frameHeight{};
+};
+
+struct AnimationFrame {
+	int row{};
+	int col{};
+	int nrFrames{};
 };
 
 struct Frame {
@@ -51,44 +46,49 @@ struct Frame {
 	int			index{};
 	int			startIndex{};
 	int			nrFrames{};
-	float		width{};
-	float		height{};
-	const int	idleNrFrames{ 1 };
-	const int	walkNrFrames{ 7 };
-	const int	jumpNrFrames{ 4 };
 };
 
-struct Wolf {
+struct Fox {
 	Point2f		pos{};
 	Point2f		dir{};
 	Frame		frame{};
-	WolfTexture	texture{};
-	MoveState	moveState{};
+	FoxTexture	texture{};
 	AnimState	animState{};
+	bool		isJumping{};
 	float		vx{};
 	float		vy{};
 };
 
 float		g_FrameTime{};
+float		g_SleepTime{};
 const float g_Gravity{ 800.f };
 const float g_JumpPower{ -400.f };
-const float g_WolfSpeed{ 200.f };
-Wolf g_Wolf{};
-Rectf g_Ground{ 0.f, g_WindowHeight * .75f, g_WindowWidth, g_WindowHeight };
+const float g_FoxSpeed{ 200.f };
+
+Fox			g_Fox{};
+Rectf		g_Ground{ 0.f, g_WindowHeight * .75f, g_WindowWidth, g_WindowHeight };
+
+std::map<std::string, AnimationFrame> g_AnimFrames{};
 
 // Declare your own functions here
 
-void	InitWolf();
-void	DrawWolf();
-void	UpdateWolfPos(float elapsedSec);
-void	UpdateWolfFrame(float elapsedSec);
-void	UpdateWolfFrameStartIndex();
+void	InitFox();
+void	DrawFox();
+void	UpdateFoxPos(float elapsedSec);
+void	UpdateFoxFrame(float elapsedSec);
+void	UpdateFoxFrameStartIndex();
+void	UpdateFoxAnimState(const Uint8* pStates);
+void	UpdateFoxDirection(const Uint8* pStates);
+void	UpdateFoxJumpState(const Uint8* pStates);
 
 Rectf	GetFrameRectf(int index);
 
 int GetIndex(int rowIdx, int colIdx, int nrCols);
 int GetRow(int index, int nrCols);
 int GetCol(int index, int nrCols);
+
+void InitAnimationFrames(); 
+bool IsAnyMovementKeyPressed(const Uint8* pStates);
 
 #pragma endregion ownDeclarations
 
