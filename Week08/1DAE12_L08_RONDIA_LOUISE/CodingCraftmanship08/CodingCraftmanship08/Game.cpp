@@ -8,12 +8,21 @@ void Start()
 {
 	InitAnimationFrames();
 	InitFox();
+	/*if (!TextureFromFile("Resources/bg.bmp", g_HeightMap))
+		std::cout << "couldn't load bg.bmp\n";*/
+	for (int i{}; i < g_NrSteps; ++i) {
+		g_Steps[i].shape.center.y = g_Ground.top + (i & 1 ? 15.f : 0.f);
+		g_Steps[i].index = i;
+	}
+
 }
 
 void Draw()
 {
 	ClearBackground(g_White.r, g_White.g, g_White.b);
 	DrawFox();
+	DrawSteps();
+	//DrawLandscape();
 }
 
 void Update(float elapsedSec)
@@ -26,17 +35,20 @@ void Update(float elapsedSec)
 	UpdateFoxPos(elapsedSec);
 	UpdateFoxFrame(elapsedSec);
 
+
 	// should be when a key is pressed or released, whenever there's any event
 	// so for now it's just updated all the time, is that ok ?
 
 	//if (IsAnyMovementKeyPressed(pStates)) 
 	UpdateFoxFrameStartIndex();
+	UpdateSteps(elapsedSec);
 
 	g_SleepTime += elapsedSec;
 }
 
 void End()
 {
+	DeleteTexture(g_Fox.texture.texture);
 }
 #pragma endregion gameFunctions
 
@@ -78,7 +90,7 @@ void InitFox() {
 	g_Fox.frame.rect = GetFrameRectf(0);
 	g_Fox.frame.nrFrames = g_AnimFrames["idleRight"].nrFrames;
 	g_Fox.frame.startIndex = GetIndex(g_AnimFrames["idleRight"].row, g_AnimFrames["idleRight"].col, g_Fox.texture.nrCols);
-	g_Fox.pos = Point2f{ g_WindowWidth / 4, g_WindowHeight * .75f - g_Fox.texture.frameHeight };
+	g_Fox.pos = Point2f{ g_WindowWidth / 4, g_WindowHeight * .75f - g_FoxDrawHeight };
 	g_Fox.dir = Point2f{ 1.f, 0.f };
 }
 
@@ -112,13 +124,14 @@ int GetCol(int index, int nrCols) {
 }
 
 void DrawFox() {
-	const Rectf rect{ g_Fox.pos.x, g_Fox.pos.y, 100.f, 100.f };
+	const Rectf rect{ g_Fox.pos.x, g_Fox.pos.y, g_FoxDrawWidth, g_FoxDrawHeight };
 	DrawTexture(g_Fox.texture.texture, rect, g_Fox.frame.rect);
 }
 
 void UpdateFoxPos(float elapsedSec) {
 	g_Fox.pos.x += elapsedSec * g_Fox.vx;
 	g_Fox.pos.y += elapsedSec * g_Fox.vy;
+	g_StepOffset += fabsf(elapsedSec * g_Fox.vx);
 
 	if (g_Fox.isJumping) {
 		g_Fox.vy += elapsedSec * g_Gravity;
@@ -128,7 +141,7 @@ void UpdateFoxPos(float elapsedSec) {
 	}
 }
 
-bool IsAnyMovementKeyPressed(const Uint8* pStates) {
+bool	IsAnyMovementKeyPressed(const Uint8* pStates) {
 	return (pStates[SDL_SCANCODE_RIGHT] || pStates[SDL_SCANCODE_LEFT] || pStates[SDL_SCANCODE_SPACE]);
 }
 
@@ -156,7 +169,7 @@ void	UpdateFoxFrameStartIndex() {
 	g_Fox.frame.startIndex = GetIndex(g_AnimFrames[key].row, g_AnimFrames[key].col, g_Fox.texture.nrCols);
 }
 
-void UpdateFoxFrame(float elapsedSec) {
+void	UpdateFoxFrame(float elapsedSec) {
 	const float frameRate{ 1.f / 8.f };
 
 	g_FrameTime += elapsedSec;
@@ -174,10 +187,10 @@ void	UpdateFoxJumpState(const Uint8* pStates) {
 		g_Fox.vy = g_JumpPower;
 		g_Fox.pos.y -= 2.f;
 	}
-	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_Fox.texture.frameHeight) {
+	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_FoxDrawHeight) {
 		g_Fox.isJumping = false;
 		g_Fox.vy = 0.f;
-		g_Fox.pos.y = g_Ground.top - g_Fox.texture.frameHeight;
+		g_Fox.pos.y = g_Ground.top - g_FoxDrawHeight;
 	}
 }
 
@@ -192,7 +205,7 @@ void	UpdateFoxAnimState(const Uint8* pStates) {
 	if (!g_Fox.isJumping && pStates[SDL_SCANCODE_SPACE]) {
 		g_Fox.animState = AnimState::Jump;
 	}
-	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_Fox.texture.frameHeight) {
+	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_FoxDrawHeight) {
 		g_Fox.animState = AnimState::Idle;
 		g_SleepTime = 0.f;
 	}
@@ -210,7 +223,56 @@ void	UpdateFoxDirection(const Uint8* pStates) {
 		g_Fox.vx = g_FoxSpeed * g_Fox.dir.x;
 		g_Fox.dir.x = -1.f;
 	}
-
 }
+
+void	DrawLandscape() {
+	const Rectf rect{ 0.f, 0.f, g_WindowWidth, g_WindowHeight };
+	DrawTexture(g_HeightMap, rect);
+}
+
+void	DrawSteps() {
+	for (int i{}; i < g_NrSteps; ++i) {
+		if (g_Steps[i].isOn) {
+			SetColor(g_Steps[i].color);
+			FillEllipse(g_Steps[i].shape);
+		}
+	}
+}
+
+void	UpdateSteps(float elapsedSec) {
+	const float width{ g_Fox.frame.rect.width };
+	if (g_StepOffset > 15.f) {
+		g_StepOffset = 0.f;
+		g_StepIndex = (g_StepIndex + 1) % g_NrSteps;
+
+		g_Steps[g_StepIndex].shape.center.x = g_Fox.pos.x + (g_Fox.dir.x == -1 ? width * 2 : width);
+		g_Steps[g_StepIndex].isOn = true;
+		g_Steps[g_StepIndex].coolDown = 0.f;
+		g_Steps[g_StepIndex].color = g_DarkGrey;
+
+		const int last4{ (g_StepIndex + 1) % g_NrSteps }, last2{ (g_StepIndex + 3) % g_NrSteps };
+		for (int index{}; index < g_NrSteps; ++index) {
+			if (index == last4 || index == (last4 + 1) % g_NrSteps) {
+
+				std::cout << g_StepIndex << "last : " << last4 << " med last :" << last2 << std::endl;
+				g_Steps[index].color = g_LightGrey;
+			}
+			else if (index == last2 || index == (last2 + 1) % g_NrSteps)
+				g_Steps[index].color = g_MedGrey;
+		}
+	}
+
+	for (int i{}; i < g_NrSteps; ++i) {
+		g_Steps[i].coolDown += elapsedSec;
+
+		if (g_Steps[i].coolDown > 7.f)
+			g_Steps[i].isOn = false;
+		else if (g_Steps[i].coolDown > 5.f)
+			g_Steps[i].color = g_LightGrey;
+		else if (g_Steps[i].coolDown > 3.f && g_Steps[i].color.a != g_LightGrey.a)
+			g_Steps[i].color = g_MedGrey;
+	}
+}
+
 
 #pragma endregion ownDefinitions

@@ -18,6 +18,9 @@ float g_WindowHeight{ 720 };
 // Declare your own global variables here
 
 const Color4f g_White{ 1.f, 1.f, 1.f, 1.f };
+const Color4f g_LightGrey{ 0.f, 0.f, 0.f, 0.1f };
+const Color4f g_MedGrey{ 0.f, 0.f, 0.f, 0.2f };
+const Color4f g_DarkGrey{ 0.f, 0.f, 0.f, 0.5f };
 const Color4f g_Black{ 0.f, 0.f, 0.f, 1.f };
 
 enum class AnimState {
@@ -59,18 +62,38 @@ struct Fox {
 	float		vy{};
 };
 
+struct Step {
+	Ellipsef	shape{ 0.f, 0.f, 5.f, 3.f };
+	Color4f		color{ g_DarkGrey };
+	bool		isOn{};
+	float		coolDown{};
+	int			index{};
+};
+
 float		g_FrameTime{};
 float		g_SleepTime{};
 const float g_Gravity{ 800.f };
 const float g_JumpPower{ -400.f };
 const float g_FoxSpeed{ 200.f };
+const float g_FoxDrawWidth{ 100.f };
+const float g_FoxDrawHeight{ 100.f };
+
+const int	g_NrSteps{ 8 };
+Step		g_Steps[g_NrSteps]{};
+float		g_StepOffset{};
+int			g_StepIndex{};
 
 Fox			g_Fox{};
 Rectf		g_Ground{ 0.f, g_WindowHeight * .75f, g_WindowWidth, g_WindowHeight };
+Texture		g_HeightMap{};
 
 std::map<std::string, AnimationFrame> g_AnimFrames{};
 
 // Declare your own functions here
+
+void	DrawLandscape();
+void	DrawSteps();
+void	UpdateSteps(float elapsedSec);
 
 void	InitFox();
 void	DrawFox();
@@ -87,7 +110,7 @@ int GetIndex(int rowIdx, int colIdx, int nrCols);
 int GetRow(int index, int nrCols);
 int GetCol(int index, int nrCols);
 
-void InitAnimationFrames(); 
+void InitAnimationFrames();
 bool IsAnyMovementKeyPressed(const Uint8* pStates);
 
 #pragma endregion ownDeclarations
