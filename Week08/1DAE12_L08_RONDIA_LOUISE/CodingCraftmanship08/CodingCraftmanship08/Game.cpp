@@ -6,23 +6,26 @@
 #pragma region gameFunctions											
 void Start()
 {
+	InitWorldScenes();
 	InitAnimationFrames();
 	InitFox();
-	/*if (!TextureFromFile("Resources/bg.bmp", g_HeightMap))
-		std::cout << "couldn't load bg.bmp\n";*/
-	for (int i{}; i < g_NrSteps; ++i) {
-		g_Steps[i].shape.center.y = g_Ground.top + (i & 1 ? 15.f : 0.f);
-		g_Steps[i].index = i;
-	}
-
+	InitFoxSteps();
 }
 
 void Draw()
 {
 	ClearBackground(g_White.r, g_White.g, g_White.b);
-	DrawFox();
+	DrawBackground();
 	DrawSteps();
-	//DrawLandscape();
+	DrawFox();
+	DrawForeground();
+
+	// utils : draw altitude vectors
+
+	//for (float col{}; col < g_WindowWidth; ++col) {
+	//	SetColor(g_Black);
+	//	DrawRect(col, g_World.scenes[g_World.currentScene].altitude[col], 1.f, 1.f);
+	//}
 }
 
 void Update(float elapsedSec)
@@ -34,6 +37,7 @@ void Update(float elapsedSec)
 	UpdateFoxDirection(pStates);
 	UpdateFoxPos(elapsedSec);
 	UpdateFoxFrame(elapsedSec);
+	UpdateWorldScene();
 
 
 	// should be when a key is pressed or released, whenever there's any event
@@ -44,6 +48,9 @@ void Update(float elapsedSec)
 	UpdateSteps(elapsedSec);
 
 	g_SleepTime += elapsedSec;
+	g_Time += elapsedSec;
+
+	g_CloudPos.x += cosf(g_Time) / 3;
 }
 
 void End()
@@ -64,9 +71,6 @@ void OnKeyUpEvent(SDL_Keycode key)
 
 void OnMouseMotionEvent(const SDL_MouseMotionEvent& e)
 {
-	//const float mouseX{ float(e.x) };
-	//const float mouseY{ float(e.y) };
-	//std::cout << "  [" << mouseX << ", " << mouseY << "]\n";
 }
 
 void OnMouseDownEvent(const SDL_MouseButtonEvent& e)
@@ -81,6 +85,42 @@ void OnMouseUpEvent(const SDL_MouseButtonEvent& e)
 #pragma region ownDefinitions
 // Define your own functions here
 
+void	InitWorldScenes() {
+	g_World.scenes[0].altitude.resize(g_WindowWidth + 1);
+	g_World.scenes[1].altitude.resize(g_WindowWidth + 1);
+	TextureFromFile("Resources/landscape0_bg.png", g_World.scenes[0].bgTexture);
+	TextureFromFile("Resources/landscape0_fg.png", g_World.scenes[0].fgTexture);
+	TextureFromFile("Resources/landscape1_bg.png", g_World.scenes[1].bgTexture);
+	TextureFromFile("Resources/landscape1_fg.png", g_World.scenes[1].fgTexture);
+	TextureFromFile("Resources/cloud.png", g_Cloud);
+	g_CloudPos = Point2f{ g_WindowWidth * 2 / 3 + 50.f, g_WindowHeight / 3 };
+
+	const int third{ int(g_WindowWidth / 3) },
+		third2{ int(g_WindowWidth / 3 * 2) };
+	const float gap{ (g_MinAltitude - g_MaxAltitude) };
+
+	for (int col{}; col < g_WindowWidth; ++col) {
+		if (col > third && col < third2) {
+			g_World.scenes[0].altitude[col] = g_MinAltitude - (gap / third * (col - third));
+		}
+		else if (col >= third2) {
+			g_World.scenes[0].altitude[col] = g_MaxAltitude + (gap / third * (col - third2));
+		}
+		else {
+			g_World.scenes[0].altitude[col] = g_MinAltitude;
+		}
+	}
+
+	for (int col{}; col < g_WindowWidth; ++col) {
+		if (col < int(third)) {
+			g_World.scenes[1].altitude[col] = g_MaxAltitude + (gap / (third)*col);
+		}
+		else {
+			g_World.scenes[1].altitude[col] = g_MinAltitude;
+		}
+	}
+}
+
 void InitFox() {
 	if (!TextureFromFile("Resources/Fox Sprite Sheet.png", g_Fox.texture.texture)) {
 		std::cout << "Couldn't load fox.png\n";
@@ -90,8 +130,16 @@ void InitFox() {
 	g_Fox.frame.rect = GetFrameRectf(0);
 	g_Fox.frame.nrFrames = g_AnimFrames["idleRight"].nrFrames;
 	g_Fox.frame.startIndex = GetIndex(g_AnimFrames["idleRight"].row, g_AnimFrames["idleRight"].col, g_Fox.texture.nrCols);
-	g_Fox.pos = Point2f{ g_WindowWidth / 4, g_WindowHeight * .75f - g_FoxDrawHeight };
+	g_Fox.pos = Point2f{ g_WindowWidth / 4, GetAltitude(g_WindowWidth / 4 + g_FoxDrawWidth / 2) - g_FoxDrawHeight };
 	g_Fox.dir = Point2f{ 1.f, 0.f };
+}
+
+void	InitFoxSteps() {
+	for (int i{}; i < g_NrSteps; ++i) {
+		g_Steps[i].isOn = false;
+		g_Steps[i].shape.center.y = g_Ground.top + (i & 1 ? 15.f : 0.f);
+		g_Steps[i].index = i;
+	}
 }
 
 void InitAnimationFrames() {
@@ -123,14 +171,39 @@ int GetCol(int index, int nrCols) {
 	return index % nrCols;
 }
 
+float GetAltitude(float index) {
+	if (index < 0.f)
+		index = 0.f;
+	else if (index >= g_WindowWidth)
+		index = g_WindowWidth;
+	return g_World.scenes[g_World.currentScene].altitude[static_cast<unsigned int>(index)];
+}
+
+void	DrawBackground() {
+	SetColor(g_Orange);
+	FillEllipse(g_Sun);
+	DrawTexture(g_World.scenes[g_World.currentScene].bgTexture, Rectf{ 0.f, 0.f, g_WindowWidth, g_WindowHeight });
+}
+
+void DrawForeground() {
+	DrawTexture(g_World.scenes[g_World.currentScene].fgTexture, Rectf{ 0.f, 0.f, g_WindowWidth, g_WindowHeight });
+	if (!g_World.currentScene)
+		DrawTexture(g_Cloud, g_CloudPos);
+}
+
 void DrawFox() {
 	const Rectf rect{ g_Fox.pos.x, g_Fox.pos.y, g_FoxDrawWidth, g_FoxDrawHeight };
 	DrawTexture(g_Fox.texture.texture, rect, g_Fox.frame.rect);
 }
 
 void UpdateFoxPos(float elapsedSec) {
+	const float altitude{ GetAltitude(g_Fox.pos.x + g_FoxDrawWidth / 2) };
+
 	g_Fox.pos.x += elapsedSec * g_Fox.vx;
-	g_Fox.pos.y += elapsedSec * g_Fox.vy;
+	if (g_Fox.isJumping)
+		g_Fox.pos.y += elapsedSec * g_Fox.vy;
+	else
+		g_Fox.pos.y = altitude - g_FoxDrawHeight;
 	g_StepOffset += fabsf(elapsedSec * g_Fox.vx);
 
 	if (g_Fox.isJumping) {
@@ -181,20 +254,23 @@ void	UpdateFoxFrame(float elapsedSec) {
 }
 
 void	UpdateFoxJumpState(const Uint8* pStates) {
+	const float altitude{ GetAltitude(g_Fox.pos.x + g_FoxDrawWidth / 2) };
 
 	if (!g_Fox.isJumping && pStates[SDL_SCANCODE_SPACE]) {
 		g_Fox.isJumping = true;
 		g_Fox.vy = g_JumpPower;
 		g_Fox.pos.y -= 2.f;
 	}
-	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_FoxDrawHeight) {
+	else if (g_Fox.isJumping && g_Fox.pos.y > altitude - g_FoxDrawHeight) {
 		g_Fox.isJumping = false;
 		g_Fox.vy = 0.f;
-		g_Fox.pos.y = g_Ground.top - g_FoxDrawHeight;
+		g_Fox.pos.y = GetAltitude(g_Fox.pos.x + g_FoxDrawWidth / 2) - g_FoxDrawHeight;
 	}
 }
 
 void	UpdateFoxAnimState(const Uint8* pStates) {
+	const float altitude{ GetAltitude(g_Fox.pos.x + g_FoxDrawWidth / 2) };
+
 	if ((pStates[SDL_SCANCODE_RIGHT] || pStates[SDL_SCANCODE_LEFT]) && g_Fox.animState != AnimState::Jump) {
 		g_Fox.animState = AnimState::Walk;
 	}
@@ -205,7 +281,7 @@ void	UpdateFoxAnimState(const Uint8* pStates) {
 	if (!g_Fox.isJumping && pStates[SDL_SCANCODE_SPACE]) {
 		g_Fox.animState = AnimState::Jump;
 	}
-	else if (g_Fox.isJumping && g_Fox.pos.y > g_Ground.top - g_FoxDrawHeight) {
+	else if (g_Fox.isJumping && g_Fox.pos.y > altitude - g_FoxDrawHeight) {
 		g_Fox.animState = AnimState::Idle;
 		g_SleepTime = 0.f;
 	}
@@ -225,11 +301,6 @@ void	UpdateFoxDirection(const Uint8* pStates) {
 	}
 }
 
-void	DrawLandscape() {
-	const Rectf rect{ 0.f, 0.f, g_WindowWidth, g_WindowHeight };
-	DrawTexture(g_HeightMap, rect);
-}
-
 void	DrawSteps() {
 	for (int i{}; i < g_NrSteps; ++i) {
 		if (g_Steps[i].isOn) {
@@ -241,22 +312,22 @@ void	DrawSteps() {
 
 void	UpdateSteps(float elapsedSec) {
 	const float width{ g_Fox.frame.rect.width };
-	if (g_StepOffset > 15.f) {
-		g_StepOffset = 0.f;
+	const float altitude{ GetAltitude(g_Fox.pos.x + g_FoxDrawWidth / 2) };
+
+	if (g_StepOffset > 15.f && !g_Fox.isJumping) {
+		g_StepOffset = (g_StepIndex % 4 ? 0.f : -30.f);
 		g_StepIndex = (g_StepIndex + 1) % g_NrSteps;
 
 		g_Steps[g_StepIndex].shape.center.x = g_Fox.pos.x + (g_Fox.dir.x == -1 ? width * 2 : width);
+		g_Steps[g_StepIndex].shape.center.y = altitude + (g_StepIndex & 1 ? (rand() % 7 - 3) + 7.f : (rand() % 7 - 3)) - 5.f;
 		g_Steps[g_StepIndex].isOn = true;
 		g_Steps[g_StepIndex].coolDown = 0.f;
 		g_Steps[g_StepIndex].color = g_DarkGrey;
 
 		const int last4{ (g_StepIndex + 1) % g_NrSteps }, last2{ (g_StepIndex + 3) % g_NrSteps };
 		for (int index{}; index < g_NrSteps; ++index) {
-			if (index == last4 || index == (last4 + 1) % g_NrSteps) {
-
-				std::cout << g_StepIndex << "last : " << last4 << " med last :" << last2 << std::endl;
+			if (index == last4 || index == (last4 + 1) % g_NrSteps)
 				g_Steps[index].color = g_LightGrey;
-			}
 			else if (index == last2 || index == (last2 + 1) % g_NrSteps)
 				g_Steps[index].color = g_MedGrey;
 		}
@@ -265,14 +336,30 @@ void	UpdateSteps(float elapsedSec) {
 	for (int i{}; i < g_NrSteps; ++i) {
 		g_Steps[i].coolDown += elapsedSec;
 
-		if (g_Steps[i].coolDown > 7.f)
+		if (g_Steps[i].coolDown > 5.f)
 			g_Steps[i].isOn = false;
-		else if (g_Steps[i].coolDown > 5.f)
+		else if (g_Steps[i].coolDown > 4.f)
 			g_Steps[i].color = g_LightGrey;
 		else if (g_Steps[i].coolDown > 3.f && g_Steps[i].color.a != g_LightGrey.a)
 			g_Steps[i].color = g_MedGrey;
 	}
 }
 
+void	UpdateWorldScene() {
+	if (g_Fox.pos.x + g_FoxDrawWidth / 2 <= 0.f) {
+		g_World.currentScene -= 1;
+		if (g_World.currentScene < 0)
+			g_World.currentScene = g_World.nrScenes - 1;
+		g_Fox.pos.x = g_WindowWidth - g_FoxDrawWidth / 2;
+		InitFoxSteps();
+	}
+	else if (g_Fox.pos.x + g_FoxDrawWidth / 2 >= g_WindowWidth) {
+		g_World.currentScene += 1;
+		g_World.currentScene %= g_World.nrScenes;
+		g_Fox.pos.x = g_FoxDrawWidth / 2;
+		InitFoxSteps();
+	}
+
+}
 
 #pragma endregion ownDefinitions

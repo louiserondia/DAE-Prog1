@@ -22,6 +22,27 @@ const Color4f g_LightGrey{ 0.f, 0.f, 0.f, 0.1f };
 const Color4f g_MedGrey{ 0.f, 0.f, 0.f, 0.2f };
 const Color4f g_DarkGrey{ 0.f, 0.f, 0.f, 0.5f };
 const Color4f g_Black{ 0.f, 0.f, 0.f, 1.f };
+const Color4f g_Orange{ 1.f, 0.7f, 0.2f, 1.f };
+
+struct Scene {
+	Texture bgTexture{};
+	Texture fgTexture{};
+	//std::vector<float> altitude(static_cast<unsigned int>(g_WindowWidth)) {};
+	std::vector<float> altitude{};
+
+};
+
+Texture g_Cloud{};
+Point2f	g_CloudPos{};
+int		g_CloudDir{ 1 };
+
+Ellipsef	g_Sun{ g_WindowWidth / 2, g_WindowHeight / 3 + 25.f, 35.f, 35.f };
+
+struct World {
+	static const int nrScenes{ 2 };
+	Scene	scenes[nrScenes]{};
+	int		currentScene{ 1 };
+};
 
 enum class AnimState {
 	Idle,
@@ -70,6 +91,7 @@ struct Step {
 	int			index{};
 };
 
+float		g_Time{};
 float		g_FrameTime{};
 float		g_SleepTime{};
 const float g_Gravity{ 800.f };
@@ -83,19 +105,29 @@ Step		g_Steps[g_NrSteps]{};
 float		g_StepOffset{};
 int			g_StepIndex{};
 
+const float g_MaxAltitude{ 200.f };
+const float g_MinAltitude{ g_WindowHeight - 200.f };
+
+World		g_World{};
 Fox			g_Fox{};
-Rectf		g_Ground{ 0.f, g_WindowHeight * .75f, g_WindowWidth, g_WindowHeight };
-Texture		g_HeightMap{};
+Rectf		g_Ground{ 0.f, g_MinAltitude, g_WindowWidth, g_WindowHeight };
+
+std::vector<float>	g_Altitude(static_cast<unsigned int>(g_WindowWidth));
 
 std::map<std::string, AnimationFrame> g_AnimFrames{};
 
 // Declare your own functions here
 
-void	DrawLandscape();
+void	InitWorldScenes();
+void	UpdateWorldScene();
+void	DrawBackground();
+void	DrawForeground();
+
 void	DrawSteps();
 void	UpdateSteps(float elapsedSec);
 
 void	InitFox();
+void	InitFoxSteps();
 void	DrawFox();
 void	UpdateFoxPos(float elapsedSec);
 void	UpdateFoxFrame(float elapsedSec);
@@ -109,6 +141,7 @@ Rectf	GetFrameRectf(int index);
 int GetIndex(int rowIdx, int colIdx, int nrCols);
 int GetRow(int index, int nrCols);
 int GetCol(int index, int nrCols);
+float GetAltitude(float index);
 
 void InitAnimationFrames();
 bool IsAnyMovementKeyPressed(const Uint8* pStates);
