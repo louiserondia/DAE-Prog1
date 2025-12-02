@@ -5,7 +5,7 @@ using namespace utils;
 
 #pragma region gameInformation
 // TODO: Set your name and group in the title here
-std::string g_WindowTitle{ "Coding Craftmanship 08 - Rondia, Louise - 1DAE12" };
+std::string g_WindowTitle{ "Coding Craftmanship 08 - Fox - Rondia, Louise - 1DAE12" };
 
 // Change the window dimensions here
 float g_WindowWidth{ 1080 };
@@ -137,11 +137,7 @@ void	UpdateFoxDirection(const Uint8* pStates);
 void	UpdateFoxJumpState(const Uint8* pStates);
 
 Rectf	GetFrameRectf(int index);
-
-int GetIndex(int rowIdx, int colIdx, int nrCols);
-int GetRow(int index, int nrCols);
-int GetCol(int index, int nrCols);
-float GetAltitude(float index);
+float	GetAltitude(float index);
 
 void InitAnimationFrames();
 bool IsAnyMovementKeyPressed(const Uint8* pStates);

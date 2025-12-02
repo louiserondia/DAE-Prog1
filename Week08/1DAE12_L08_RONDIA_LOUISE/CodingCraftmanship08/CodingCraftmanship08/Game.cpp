@@ -159,18 +159,6 @@ Rectf	GetFrameRectf(int index) {
 	return Rectf(GetCol(index, nrCols) * width, GetRow(index, nrCols) * height, width, height);
 }
 
-int GetIndex(int rowIdx, int colIdx, int nrCols) {
-	return rowIdx * nrCols + colIdx;
-}
-
-int GetRow(int index, int nrCols) {
-	return index / nrCols;
-}
-
-int GetCol(int index, int nrCols) {
-	return index % nrCols;
-}
-
 float GetAltitude(float index) {
 	if (index < 0.f)
 		index = 0.f;
