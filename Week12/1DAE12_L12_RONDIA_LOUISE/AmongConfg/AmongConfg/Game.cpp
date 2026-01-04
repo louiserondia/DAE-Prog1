@@ -21,12 +21,17 @@ void Draw()
 	switch (g_GameState) {
 	case GameStates::color:
 		DrawGrid();
-		DrawColors();
+		DrawFeatures(g_NumColors, g_ColorsTexture, g_ColorsFrames);
 		DrawCrewMate(g_CrewMates.back());
 		break;
 	case GameStates::hat:
 		DrawGrid();
-		DrawHats();
+		DrawFeatures(g_NumHats, g_HatsTexture, g_HatsFrames);
+		DrawCrewMate(g_CrewMates.back());
+		break;
+	case GameStates::pet:
+		DrawGrid();
+		DrawFeatures(g_NumPets, g_PetsTexture, g_PetsFrames);
 		DrawCrewMate(g_CrewMates.back());
 		break;
 	case GameStates::game:
@@ -43,7 +48,7 @@ void Draw()
 
 void Update(float elapsedSec)
 {
-	const Uint8 *pStates = SDL_GetKeyboardState( nullptr );
+	const Uint8* pStates = SDL_GetKeyboardState(nullptr);
 	g_Dir.x = pStates[SDL_SCANCODE_RIGHT] ? 1.f : pStates[SDL_SCANCODE_LEFT] ? -1.f : 0.f;
 	g_Dir.y = pStates[SDL_SCANCODE_DOWN] ? 1.f : pStates[SDL_SCANCODE_UP] ? -1.f : 0.f;
 
@@ -52,7 +57,7 @@ void Update(float elapsedSec)
 
 void End()
 {
-	// free game resources here
+	g_CrewMates.clear();
 }
 #pragma endregion gameFunctions
 
@@ -83,11 +88,11 @@ void OnMouseUpEvent(const SDL_MouseButtonEvent& e)
 	{
 	case SDL_BUTTON_LEFT:
 		if (buttonIndex != -1) {
-			if ((buttonIndex == 0 || buttonIndex == 1) && g_GameState == GameStates::game) {
+			if (buttonIndex >= 0 && buttonIndex <= 2 && g_GameState == GameStates::game && !IsDuplicate(g_CrewMates.back())) {
 				InitCrewMate();
 			}
 			g_GameState = static_cast<GameStates>(buttonIndex);
-			if (g_GameState == GameStates::game) {
+			if (g_GameState == GameStates::game && !IsDuplicate(g_CrewMates.back())) {
 				UpdateCrewMateForGame();
 			}
 		}
@@ -96,7 +101,7 @@ void OnMouseUpEvent(const SDL_MouseButtonEvent& e)
 
 			if (cellIndex != -1) {
 				PrintCellIndex(mouse, cellIndex);
-				UpdateHatAndColorIndex(cellIndex, mouse);
+				UpdateFeaturesIndex(cellIndex, mouse);
 			}
 		}
 		else {
@@ -126,12 +131,12 @@ void OnMouseUpEvent(const SDL_MouseButtonEvent& e)
 // Define your own functions here
 
 void InitializeButtons() {
-	const float thirdWindow{ g_WindowWidth / 3 };
+	const float width{ g_WindowWidth / std::size(g_Buttons) };
 	const float height{ 50.f };
 	const float top{ g_WindowHeight - height };
 
 	for (int index{}; index < std::size(g_Buttons); ++index) {
-		g_Buttons[index].bounds = Rectf{ thirdWindow * index, top, thirdWindow, height };
+		g_Buttons[index].bounds = Rectf{ width * index, top, width, height };
 		TextureFromString(g_ButtonTexts[index], "Resources/among.ttf", 32, g_White, g_Buttons[index].captionTexture);
 	}
 }
@@ -149,21 +154,22 @@ void InitializeGrid() {
 	g_GridNumRows = { static_cast<int>(g_GridBounds.height / g_GridTileSize) };
 }
 
+void InitFrames(int nFeatures, int nRows, int nCols, Rectf* frames, const Texture& texture) {
+	const float width{ texture.width / nCols };
+	const float height{ texture.height / nRows };
+	for (int index{}; index < nFeatures; ++index) {
+		frames[index] = Rectf{ GetCol(index, nCols) * width, GetRow(index, nCols) * height, width, height };
+	}
+}
+
 void InitializeAssets() {
 	TextureFromFile("Resources/colors.png", g_ColorsTexture);
 	TextureFromFile("Resources/hats.png", g_HatsTexture);
+	TextureFromFile("Resources/pets.png", g_PetsTexture);
 
-	float	width{ g_ColorsTexture.width / 3 },
-		height{ g_ColorsTexture.height / 5 };
-	for (int index{}; index < g_NumColors; ++index) {
-		g_ColorsFrames[index] = Rectf{ index % 3 * width, index / 3 * height, width, height };
-	}
-
-	width = g_HatsTexture.width / 5;
-	height = g_HatsTexture.height / 6;
-	for (int index{}; index < g_NumHats; ++index) {
-		g_HatsFrames[index] = Rectf{ index % 3 * width, index / 3 * height, width, height };
-	}
+	InitFrames(g_NumColors, 5, 3, g_ColorsFrames, g_ColorsTexture);
+	InitFrames(g_NumHats, 6, 5, g_HatsFrames, g_HatsTexture);
+	InitFrames(g_NumPets, 2, 5, g_PetsFrames, g_PetsTexture);
 }
 
 void InitCrewMate() {
@@ -213,57 +219,61 @@ void DrawGrid() {
 	}
 }
 
-void DrawColors() {
+void DrawFeatures(int nFeatures, const Texture& texture, const Rectf* frames) {
 	const float gap{ 4.f };
-	const float height{ g_GridTileSize - gap * 2 },
-		width{ g_ColorsFrames[0].width / (g_ColorsFrames[0].height / height) };
+	const float height{ g_GridTileSize - gap },
+		width{ frames[0].width / (frames[0].height / height) };
 
-	for (int index{}; index < g_NumColors; ++index) {
-		const Rectf rect{ g_GridBounds.left + GetCol(index, g_GridNumColumns) * g_GridTileSize + g_GridTileSize / 2 - width / 2,
-			g_GridBounds.top + GetRow(index, g_GridNumColumns) * g_GridTileSize + gap,
-			width, height };
-
-		DrawTexture(g_ColorsTexture, rect, g_ColorsFrames[index]);
-	}
-}
-
-void DrawHats() {
-	const float gap{ 4.f };
-
-	for (int index{}; index < g_NumHats; ++index) {
-		const Rectf rect{ g_GridBounds.left + GetCol(index, g_GridNumColumns) * g_GridTileSize,
+	for (int index{}; index < nFeatures; ++index) {
+		const Rectf rect{
+			g_GridBounds.left + GetCol(index, g_GridNumColumns) * g_GridTileSize + g_GridTileSize / 2 - width / 2,
 			g_GridBounds.top + GetRow(index, g_GridNumColumns) * g_GridTileSize,
-			g_GridTileSize - gap,
-			g_GridTileSize - gap };
+			width, height
+		};
 
-		DrawTexture(g_HatsTexture, rect, g_HatsFrames[index]);
+		DrawTexture(texture, rect, frames[index]);
 	}
 }
 
 void DrawCrewMate(const CrewMate& mate) {
-
-	const float hatWidth{ g_HatsTexture.width / 5 * mate.scale }, hatHeight{ g_HatsTexture.height / 6 * mate.scale };
+	const float
+		hatWidth{ g_HatsTexture.width / 5 * mate.scale },
+		hatHeight{ g_HatsTexture.height / 6 * mate.scale };
 	const Rectf hatDst{ mate.dst.left, mate.dst.top - hatHeight / 2, hatWidth, hatHeight };
+
+	const float
+		petWidth{ g_PetsTexture.width / 5 * mate.scale },
+		petHeight{ g_PetsTexture.height / 2 * mate.scale };
+	const Rectf petDst{ mate.dst.left - petWidth / 3, mate.dst.top + petHeight / 2, petWidth, petHeight };
 
 	DrawTexture(g_ColorsTexture, mate.dst, g_ColorsFrames[mate.colorIdx]);
 	if (mate.hatIdx != -1) {
 		DrawTexture(g_HatsTexture, hatDst, g_HatsFrames[mate.hatIdx]);
 	}
-}
-
-void DrawCrewMates() {
-	for (const CrewMate& mate : g_CrewMates) {
-		DrawCrewMate(mate);
+	if (mate.petIdx != -1) {
+		DrawTexture(g_PetsTexture, petDst, g_PetsFrames[mate.petIdx]);
 	}
 }
 
-void UpdateHatAndColorIndex(int index, const Point2f& mouse) {
+void DrawCrewMates() {
+	for (size_t index = 0; index < g_CrewMates.size(); ++index) {
+		const CrewMate& mate = g_CrewMates[index];
+		if (!(index == g_CrewMates.size() - 1 && IsDuplicate(mate))) {
+			DrawCrewMate(mate);
+		}
+	}
+}
+
+void UpdateFeaturesIndex(int index, const Point2f& mouse) {
 	switch (g_GameState) {
 	case GameStates::hat:
 		g_CrewMates.back().hatIdx = index >= g_NumHats ? -1 : index;
 		break;
 	case GameStates::color:
 		g_CrewMates.back().colorIdx = index >= g_NumColors ? -1 : index;
+		break;
+	case GameStates::pet:
+		g_CrewMates.back().petIdx = index >= g_NumPets ? -1 : index;
 		break;
 	default:
 		break;
@@ -307,6 +317,10 @@ void UpdateCrewMatePosition(float elapsedSec) {
 	CrewMate& mate{ g_CrewMates.back() };
 	mate.dst.left += elapsedSec * speed * g_Dir.x;
 	mate.dst.top += elapsedSec * speed * g_Dir.y;
+}
+
+bool IsDuplicate(const CrewMate& mate) {
+	return (std::find(g_CrewMates.begin(), g_CrewMates.end() - 1, mate) != g_CrewMates.end() - 1);
 }
 
 int GetCellIndex(Point2f mouse) {

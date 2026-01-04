@@ -27,18 +27,24 @@ struct Button {
 enum class GameStates {
 	color,
 	hat,
+	pet,
 	game
 };
 
 struct CrewMate {
 	int		colorIdx{};
 	int		hatIdx{ -1 };
+	int		petIdx{ -1 };
 	Rectf	src{};
 	Rectf	dst{};
 	float	scale{ 1 };
+
+	bool operator==(const CrewMate& rhs) {
+		return colorIdx == rhs.colorIdx && hatIdx == rhs.hatIdx && petIdx == rhs.petIdx;
+	}
 };
 
-std::string g_ButtonTexts[]{ "color", "hat", "game" };
+std::string g_ButtonTexts[]{ "color", "hat", "pet", "game" };
 Button		g_Buttons[std::size(g_ButtonTexts)]{};
 int			g_CurButton{};
 
@@ -50,15 +56,20 @@ const int	g_GridNumColumns{ 5 };
 int			g_GridNumRows{};
 float		g_GridTileSize{};
 
-const int	g_NumHats{ 29 };
-Rectf		g_HatsFrames[g_NumHats]{};
 Texture		g_ColorsTexture{};
 Texture		g_HatsTexture{};
+Texture		g_PetsTexture{};
 
 const int	g_NumColors{ 13 };
 Rectf		g_ColorsFrames[g_NumColors]{};
 
-std::vector<CrewMate> g_CrewMates{};
+const int	g_NumHats{ 29 };
+Rectf		g_HatsFrames[g_NumHats]{};
+
+const int	g_NumPets{ 10 };
+Rectf		g_PetsFrames[g_NumPets]{};
+
+std::vector<CrewMate> g_CrewMates;
 Point2f		g_Dir{ 0.f, 0.f };
 
 // Declare your own functions here
@@ -66,16 +77,16 @@ Point2f		g_Dir{ 0.f, 0.f };
 void	InitializeButtons();
 void	InitializeGrid();
 void	InitializeAssets();
+void	InitFrames(int nFeatures, int nRows, int nCols, Rectf* frames, const Texture& texture);
 void	InitCrewMate();
 
 void	DrawButtons();
 void	DrawGrid();
-void	DrawHats();
-void	DrawColors();
+void	DrawFeatures(int numFeatures, const Texture& texture, const Rectf* frames);
 void	DrawCrewMate(const CrewMate& mate);
 void	DrawCrewMates();
 
-void	UpdateHatAndColorIndex(int index, const Point2f& mouse);
+void	UpdateFeaturesIndex(int index, const Point2f& mouse);
 void	UpdateCrewMateForGame();
 
 int		SelectCrewMate(const Point2f& mouse);
@@ -85,6 +96,7 @@ void	EraseCrewMate(int index);
 
 void	UpdateCrewMatePosition(float elapsedSec);
 
+bool	IsDuplicate(const CrewMate& mate);
 bool	IsInRectBounds(const Point2f& mouse, const Rectf& bounds);
 int		GetButtonIdFromClick(const Point2f& mouse);
 int		GetCellIndex(Point2f mouse);
