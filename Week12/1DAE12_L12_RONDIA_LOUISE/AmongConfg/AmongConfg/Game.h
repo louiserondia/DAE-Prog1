@@ -18,6 +18,7 @@ float g_WindowHeight{ 600 };
 const Color4f g_PaleGreen{ 0.7f, 1.f, 0.7f, 1.f };
 const Color4f g_DarkGreen{ 0.5f, 0.8f, 0.5f, 1.f };
 const Color4f g_White{ 1.f, 1.f, 1.f, 1.f };
+const Color4f g_Black{ 0.f, 0.f, 0.f, 1.f };
 
 struct Button {
 	Texture		captionTexture;
@@ -28,7 +29,8 @@ enum class GameStates {
 	color,
 	hat,
 	pet,
-	game
+	game,
+	eject
 };
 
 struct CrewMate {
@@ -38,10 +40,17 @@ struct CrewMate {
 	Rectf	src{};
 	Rectf	dst{};
 	float	scale{ 1 };
+	bool	isImposter{};
 
 	bool operator==(const CrewMate& rhs) {
 		return colorIdx == rhs.colorIdx && hatIdx == rhs.hatIdx && petIdx == rhs.petIdx;
 	}
+};
+
+struct Stars {
+	Point2f pos;
+	int		size;
+	int		speed;
 };
 
 std::string g_ButtonTexts[]{ "color", "hat", "pet", "game" };
@@ -59,18 +68,32 @@ float		g_GridTileSize{};
 Texture		g_ColorsTexture{};
 Texture		g_HatsTexture{};
 Texture		g_PetsTexture{};
+Texture		g_WasImposterTexture{};
+Texture		g_WasNotImposterTexture{};
+
+Point2f		g_TextDst{};
+Rectf		g_TextSrc{};
 
 const int	g_NumColors{ 13 };
 Rectf		g_ColorsFrames[g_NumColors]{};
+const int	g_NumColsColors{3};
+const int	g_NumRowsColors{5};
 
 const int	g_NumHats{ 29 };
 Rectf		g_HatsFrames[g_NumHats]{};
+const int	g_NumColsHats{5};
+const int	g_NumRowsHats{6};
 
 const int	g_NumPets{ 10 };
 Rectf		g_PetsFrames[g_NumPets]{};
+const int	g_NumColsPets{5};
+const int	g_NumRowsPets{2};
 
 std::vector<CrewMate> g_CrewMates;
 Point2f		g_Dir{ 0.f, 0.f };
+int			g_ImposterIndex{};
+
+Stars		g_Stars[100]{};
 
 // Declare your own functions here
 
@@ -79,17 +102,28 @@ void	InitializeGrid();
 void	InitializeAssets();
 void	InitFrames(int nFeatures, int nRows, int nCols, Rectf* frames, const Texture& texture);
 void	InitCrewMate();
+void	InitStars();
+void	InitTextPos();
 
 void	DrawButtons();
 void	DrawGrid();
 void	DrawFeatures(int numFeatures, const Texture& texture, const Rectf* frames);
 void	DrawCrewMate(const CrewMate& mate);
 void	DrawCrewMates();
+void	DrawStars();
+void	DrawTextImposter();
 
 void	UpdateFeaturesIndex(int index, const Point2f& mouse);
 void	UpdateCrewMateForGame();
 
 int		SelectCrewMate(const Point2f& mouse);
+void	SelectNewImposter();
+
+void	StartEjection();
+void	UpdateEjectionAnimation(float elapsedSec);
+void	UpdateStarsPosition(float elapsedSec);
+void	UpdateTextFrame();
+void	EndEjection();
 
 void	PutBackCrewMate(int index);
 void	EraseCrewMate(int index);
