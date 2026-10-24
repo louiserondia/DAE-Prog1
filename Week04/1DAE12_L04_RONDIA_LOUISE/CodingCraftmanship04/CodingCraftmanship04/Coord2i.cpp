@@ -32,7 +32,7 @@ Coord2i Coord2i::operator*(const Coord2i& rhv)
 	return Coord2i(x * rhv.x, y * rhv.y);
 }
 
-bool Coord2i::operator==(const Coord2i& rhv) const
+bool Coord2i::operator==(const Coord2i& rhv)
 {
 	return (x == rhv.x && y == rhv.y);
 }

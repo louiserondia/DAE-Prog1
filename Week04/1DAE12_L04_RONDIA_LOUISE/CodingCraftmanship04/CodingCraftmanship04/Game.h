@@ -4,7 +4,6 @@
 #include <iostream>
 #include <random>
 #include <cmath>
-#include "Snake.h"
 
 using namespace utils;
 
@@ -26,6 +25,21 @@ struct Dirs {
 	const Coord2i	right{ 1, 0 };
 	const Coord2i	down{ 0, 1 };
 };
+
+class Snake {
+public:
+	std::vector<Coord2i>	pos;
+	Coord2i					dir;
+	Color4f					color;
+	size_t					length;
+	bool					isDead;
+
+	Snake();
+	void	Move();
+	void	AddTail();
+	void	CheckDeath();
+};
+
 struct Fruit
 {
 	Coord2i	notEaten{};
@@ -92,7 +106,7 @@ void	DrawTongue();
 void	DrawFruit();
 void	AddFruit();
 void	EatFruit();
-bool	DeleteFruit(const Coord2i& position);
+void	DeleteFruit();
 
 //	Boost
 void	DrawBoost();
